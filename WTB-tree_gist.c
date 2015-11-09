@@ -61,10 +61,34 @@ WTB-tree_union(PG_FUNCTION_ARGS)
 Datum
 WTB-tree_compress(PG_FUNCTION_ARGS)
 {
-	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
+	GISTENTRY *entry_in = (GISTENTRY *) PG_GETARG_POINTER(0);
+	GISTENTRY *entry_out = NULL;
+	wkey *leaf;
+	WTB_KEY_IN_LKey *LKEY;
 	
+	if ( ! entry_in->leafkey )
+	{		
+		PG_RETURN_POINTER(entry_in);
+	}
 	
-	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
+	entry_out = palloc(sizeof(GISTENTRY));
+	
+	if ( DatumGetPointer(entry_in->key) == NULL )
+	{	
+		gistentryinit(*entry_out, (Datum) 0, entry_in->rel,
+		              entry_in->page, entry_in->offset, FALSE);
+		
+		PG_RETURN_POINTER(entry_out);
+	}
+	
+	leaf = (wkey *) DatumGetPointer(PG_DETOAST_DATUM(entry->key));
+	LKEY = range_key_to_node_key(leaf);
+	
+	/* Prepare GISTENTRY for return. */
+	gistentryinit(*entry_out, PointerGetDatum(LKEY),
+	              entry_in->rel, entry_in->page, entry_in->offset, FALSE);
+	
+	PG_RETURN_POINTER(entry_out);
 }
 
 Datum

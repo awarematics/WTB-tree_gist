@@ -10,7 +10,7 @@ typedef char wkey[25];
 typedef struct
 {		
 	char nkey[12];	// Node Key
-} WTB_KEY_IN_NODE;
+} WTB_KEY_IN_LKey;
 
 
 // 범위 값으로 저장
@@ -18,4 +18,4 @@ typedef struct
 {
 	char lkey[12];	// Lower Key
 	char ukey[12];	// Upper Key
-} WTB_KEY_IN_RANGE;
+} WTB_KEY_IN_IKey;
