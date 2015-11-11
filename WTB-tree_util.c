@@ -44,3 +44,30 @@ node_key_to_range_key(wkey *w)
 	return IKEY;
 }
 
+
+// MBR 값을 GeoHash 값으로 변환
+char *
+WTB-tree_util_MBRtoGeohash(WTB_KEY_IN_IKey *IKEY)
+{
+	int precision = 12;		
+	char minGeohash[12], maxGeohash[12];
+	bool cmp = true;		
+	
+	do 
+	{
+		minGeohash = (char *) geohash_encode(xmin, ymin, precision);
+		maxGeohash = (char *) geohash_encode(xmax, ymax, precision);
+	
+		if (minGeohash = maxGeohash) 
+		{
+			cmp = true;	
+		} else 
+		{
+			cmp = false;
+		}
+		
+		precision--;
+	} while (cmp);
+		
+	return minGeohash;
+}

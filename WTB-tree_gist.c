@@ -34,18 +34,25 @@ PG_FUNCTION_INFO_V1(WTB-tree_same);
 Datum
 WTB-tree_consistent(PG_FUNCTION_ARGS)
 {
-	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
-	void	   *query = (void *) DatumGetTextP(PG_GETARG_DATUM(1));
+	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);	
 	StrategyNumber strategy = (StrategyNumber) PG_GETARG_UINT16(2);
-
+	bool		result;
+	
 	/* Oid		subtype = PG_GETARG_OID(3); */
+	
+	/* PostgreSQL 8.4 and later require the RECHECK flag to be set here,
+	   rather than being supplied as part of the operator class definition */
 	bool	   *recheck = (bool *) PG_GETARG_POINTER(4);
-	bool		retval;
+	
 
-	/* All cases served by this function are exact */
+	/* We set recheck to false to avoid repeatedly pulling every "possibly matched" geometry
+	   out during index scans. For cases when the geometries are large, rechecking
+	   can make things twice as slow. */
 	*recheck = false;
 
-	PG_RETURN_BOOL(retval);
+	
+	
+	PG_RETURN_BOOL(result);
 }
 
 
