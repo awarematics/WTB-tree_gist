@@ -1,6 +1,6 @@
 
 
-#include "WTB-tree_gist.h"
+#include "WTBtree_gist.h"
 
 extern WTB_KEY_IN_LKey range_key_to_node_key();
 

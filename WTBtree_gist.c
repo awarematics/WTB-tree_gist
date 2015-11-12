@@ -5,34 +5,33 @@
 #include "access/gist.h"
 #include "access/skey.h"
 
-#include "WTB-tree_gist.h"
-#include "WTB-tree_util.h"
+#include "WTBtree_gist.h"
+#include "WTBtree_util.h"
 #include "./geohash/geohash.h"
 
 
-Datum WTB-tree_consistent(PG_FUNCTION_ARGS);
-Datum WTB-tree_union(PG_FUNCTION_ARGS);
-Datum WTB-tree_compress(PG_FUNCTION_ARGS);
-Datum WTB-tree_decompress(PG_FUNCTION_ARGS);
-Datum WTB-tree_penalty(PG_FUNCTION_ARGS);
-Datum WTB-tree_same(PG_FUNCTION_ARGS);
-Datum WTB-tree_picksplit(PG_FUNCTION_ARGS);
+Datum WTBtree_consistent(PG_FUNCTION_ARGS);
+Datum WTBtree_union(PG_FUNCTION_ARGS);
+Datum WTBtree_compress(PG_FUNCTION_ARGS);
+Datum WTBtree_decompress(PG_FUNCTION_ARGS);
+Datum WTBtree_penalty(PG_FUNCTION_ARGS);
+Datum WTBtree_same(PG_FUNCTION_ARGS);
+Datum WTBtree_picksplit(PG_FUNCTION_ARGS);
 
 
 /*
 ** GiST support methods
 */
-PG_FUNCTION_INFO_V1(WTB-tree_consistent);
-PG_FUNCTION_INFO_V1(WTB-tree_compress);
-PG_FUNCTION_INFO_V1(WTB-tree_decompress);
-PG_FUNCTION_INFO_V1(WTB-tree_penalty);
-PG_FUNCTION_INFO_V1(WTB-tree_picksplit);
-PG_FUNCTION_INFO_V1(WTB-tree_union);
-PG_FUNCTION_INFO_V1(WTB-tree_same);
+PG_FUNCTION_INFO_V1(WTBtree_consistent);
+PG_FUNCTION_INFO_V1(WTBtree_compress);
+PG_FUNCTION_INFO_V1(WTBtree_decompress);
+PG_FUNCTION_INFO_V1(WTBtree_penalty);
+PG_FUNCTION_INFO_V1(WTBtree_picksplit);
+PG_FUNCTION_INFO_V1(WTBtree_union);
+PG_FUNCTION_INFO_V1(WTBtree_same);
 
 
-Datum
-WTB-tree_consistent(PG_FUNCTION_ARGS)
+Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 {
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);	
 	StrategyNumber strategy = (StrategyNumber) PG_GETARG_UINT16(2);
@@ -56,23 +55,39 @@ WTB-tree_consistent(PG_FUNCTION_ARGS)
 }
 
 
-Datum
-WTB-tree_union(PG_FUNCTION_ARGS)
+Datum WTBtree_union(PG_FUNCTION_ARGS)
 {
+	GistEntryVector	*entryvec = (GistEntryVector *) PG_GETARG_POINTER(0);
+	int *sizep = (int *) PG_GETARG_POINTER(1); /* Size of the return value */
+	int	numranges, i;
+	wkey *wkey_cur, *wkey_union;
 	
+	numranges = entryvec->n;
 	
-	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
+	wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[0].key);
+	
+	//wkey_union = range_key_to_node_key(wkey_cur);
+	
+	for ( i = 1; i < numranges; i++ )
+	{
+		wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[i].key);
+		
+	}
+	
+	*sizep = sizeof(wkey);
+	
+	PG_RETURN_POINTER(wkey_union);
 }
 
 
-Datum
-WTB-tree_compress(PG_FUNCTION_ARGS)
+Datum WTBtree_compress(PG_FUNCTION_ARGS)
 {
 	GISTENTRY *entry_in = (GISTENTRY *) PG_GETARG_POINTER(0);
 	GISTENTRY *entry_out = NULL;
 	wkey *leaf;
 	WTB_KEY_IN_LKey *LKEY;
 	
+	// Leaf 키가 아닐 때,
 	if ( ! entry_in->leafkey )
 	{		
 		PG_RETURN_POINTER(entry_in);
@@ -98,27 +113,41 @@ WTB-tree_compress(PG_FUNCTION_ARGS)
 	PG_RETURN_POINTER(entry_out);
 }
 
-Datum
-WTB-tree_decompress(PG_FUNCTION_ARGS)
+Datum WTBtree_decompress(PG_FUNCTION_ARGS)
 {
 	// decompress 불필요
 	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
 }
 
 
-Datum
-WTB-tree_penalty(PG_FUNCTION_ARGS)
+/*
+** GiST support function. Calculate the "penalty" cost of adding this entry into an existing entry.
+** Calculate the change in volume of the old entry once the new entry is added.
+*/
+Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 {
 	GISTENTRY  *o = (GISTENTRY *) PG_GETARG_POINTER(0);
 	GISTENTRY  *n = (GISTENTRY *) PG_GETARG_POINTER(1);
 	float	   *result = (float *) PG_GETARG_POINTER(2);
+	wkey *origKey, *newKey;
+	
+	origKey = (wkey *)DatumGetPointer(o->key);
+	newKey = (wkey *)DatumGetPointer(n->key);
+	
+	if ( (origKey == NULL) && (newKey == NULL) )
+	{		
+		*result = 0.0;
+		PG_RETURN_FLOAT8(*result);
+	}
 
+	// TODO : (sizeof(origKey) + sizeof(newKey)) - sizeof(origKey) => result
+	
 	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
 }
 
 
 Datum
-WTB-tree_same(PG_FUNCTION_ARGS)
+WTBtree_same(PG_FUNCTION_ARGS)
 {
 	
 	bool	   *result = (bool *) PG_GETARG_POINTER(2);
@@ -130,7 +159,7 @@ WTB-tree_same(PG_FUNCTION_ARGS)
 
 
 Datum
-WTB-tree_picksplit(PG_FUNCTION_ARGS)
+WTBtree_picksplit(PG_FUNCTION_ARGS)
 {
 	
 	GistEntryVector *entryvec = (GistEntryVector *) PG_GETARG_POINTER(0);

@@ -1,7 +1,7 @@
 
 
 
-#include "WTB-tree_gist.h"
+#include "WTBtree_gist.h"
 
 
 
@@ -47,7 +47,7 @@ node_key_to_range_key(wkey *w)
 
 // MBR 값을 GeoHash 값으로 변환
 char *
-WTB-tree_util_MBRtoGeohash(WTB_KEY_IN_IKey *IKEY)
+WTBtree_util_MBRtoGeohash(WTB_KEY_IN_IKey *IKEY)
 {
 	int precision = 12;		
 	char minGeohash[12], maxGeohash[12];
