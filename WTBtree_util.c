@@ -44,6 +44,26 @@ node_key_to_range_key(wkey *w)
 	return IKEY;
 }
 
+wkey
+range_key_to_wkey(WTB_KEY_IN_IKey *ikey)
+{
+	wkey *w;
+	char temp[25];
+	
+	temp[0] = 'i';
+	
+	for (int i=0; i<12; i++)
+		{
+			temp[i+1] = ikey->lkey[i];
+			temp[i+13] = ikey->ukey[i];
+		}
+		
+	w = (wkey *)palloc(sizeof(wkey));
+	memcpy((char*)w, (char*)temp, sizeof(wkey));		
+	
+	
+	return w;
+}
 
 // MBR 값을 GeoHash 값으로 변환
 char *

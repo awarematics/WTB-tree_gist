@@ -54,6 +54,42 @@ Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(result);
 }
 
+void
+WTBtree_key_union(wkey *wkey_union, wkey *wkey_cur)
+{	
+	WTB_KEY_IN_IKey cur_ikey = node_key_to_range_key(wkey_cur);
+	WTB_KEY_IN_IKey new_ikey;
+
+	if (DatumGetPointer(*wkey_union))
+	{		
+		WTB_KEY_IN_IKey ikey = node_key_to_range_key(wkey_union);
+		bool update = false;
+
+		new_ikey.lower = ikey.lower;
+		new_ikey.upper = ikey.upper;
+
+		if (strcmp(ikey.lower, cur_ikey.lower) > 0)
+		{
+			new_ikey.lower = cur_ikey.lower;
+			update = true;
+		}
+
+		if (strcmp(ikey.upper, cur_ikey.upper) < 0)
+		{
+			new_ikey.upper = cur_ikey.upper;
+			update = true;
+		}
+
+		if (update)
+			wkey_union = range_key_to_wkey(new_ikey);
+	}
+	else
+	{
+		new_ikey.lower = cur_ikey.lower;
+		new_ikey.upper = cur_ikey.upper;
+		wkey_union = range_key_to_wkey(new_ikey);
+	}
+}
 
 Datum WTBtree_union(PG_FUNCTION_ARGS)
 {
@@ -66,12 +102,10 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	
 	wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[0].key);
 	
-	//wkey_union = range_key_to_node_key(wkey_cur);
-	
 	for ( i = 1; i < numranges; i++ )
 	{
 		wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[i].key);
-		
+		WTBtree_key_union(wkey_union, wkey_cur);
 	}
 	
 	*sizep = sizeof(wkey);
