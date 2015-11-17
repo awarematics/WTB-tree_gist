@@ -55,14 +55,14 @@ Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 }
 
 void
-WTBtree_key_union(wkey *wkey_union, wkey *wkey_cur)
+WTBtree_key_union(Datum *u, wkey *wkey_cur)
 {	
 	WTB_KEY_IN_IKey cur_ikey = node_key_to_range_key(wkey_cur);
 	WTB_KEY_IN_IKey new_ikey;
 
-	if (DatumGetPointer(*wkey_union))
+	if (DatumGetPointer(*u))
 	{		
-		WTB_KEY_IN_IKey ikey = node_key_to_range_key(wkey_union);
+		WTB_KEY_IN_IKey ikey = node_key_to_range_key((wkey *) DatumGetPointer(*u));
 		bool update = false;
 
 		new_ikey.lower = ikey.lower;
@@ -81,13 +81,13 @@ WTBtree_key_union(wkey *wkey_union, wkey *wkey_cur)
 		}
 
 		if (update)
-			wkey_union = range_key_to_wkey(new_ikey);
+			*u =PointerGetDatum(range_key_to_wkey(new_ikey));
 	}
 	else
 	{
 		new_ikey.lower = cur_ikey.lower;
 		new_ikey.upper = cur_ikey.upper;
-		wkey_union = range_key_to_wkey(new_ikey);
+		*u = PointerGetDatum(range_key_to_wkey(new_ikey));
 	}
 }
 
@@ -96,7 +96,8 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	GistEntryVector	*entryvec = (GistEntryVector *) PG_GETARG_POINTER(0);
 	int *sizep = (int *) PG_GETARG_POINTER(1); /* Size of the return value */
 	int	numranges, i;
-	wkey *wkey_cur, *wkey_union;
+	Datum out;
+	wkey *wkey_cur;
 	
 	numranges = entryvec->n;
 	
@@ -105,12 +106,12 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	for ( i = 1; i < numranges; i++ )
 	{
 		wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[i].key);
-		WTBtree_key_union(wkey_union, wkey_cur);
+		WTBtree_key_union(&out, wkey_cur);
 	}
 	
 	*sizep = sizeof(wkey);
 	
-	PG_RETURN_POINTER(wkey_union);
+	PG_RETURN_POINTER(out);
 }
 
 
@@ -153,6 +154,35 @@ Datum WTBtree_decompress(PG_FUNCTION_ARGS)
 	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
 }
 
+ int
+WTBtree_node_cp_len(const wkey *w)
+{
+	WTB_KEY_IN_IKey ikey = node_key_to_range_key(w);
+	int		i = 0;
+	int		l = 0;
+	int		t1len = VARSIZE(ikey.lower) - VARHDRSZ;
+	int		t2len = VARSIZE(ikey.upper) - VARHDRSZ;
+	int		ml = Min(t1len, t2len);
+	char	   *p1 = VARDATA(ikey.lower);
+	char	   *p2 = VARDATA(ikey.upper);
+
+	if (ml == 0)
+		return 0;
+
+	while (i < ml)
+	{		
+		if (*p1 != *p2)
+		{
+			return i;	
+		}
+
+		p1++;
+		p2++;
+		l--;
+		i++;
+	}
+	return (ml);				/* lower == upper */
+}
 
 /*
 ** GiST support function. Calculate the "penalty" cost of adding this entry into an existing entry.
@@ -174,10 +204,25 @@ Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 		PG_RETURN_FLOAT8(*result);
 	}
 
-	// char 형 키값을 삽입했을때의 비용 
+	Datum		d = PointerGetDatum(0);
+	double		dres;
+	int		ol, ul;
 	
-	result = 0.0;
 	
+	WTBtree_key_union(&d, origKey);
+	ol = WTBtree_node_cp_len((wkey *) DatumGetPointer(d));
+	WTBtree_key_union(&d, newKey);
+	ul = WTBtree_node_cp_len((wkey *) DatumGetPointer(d));
+	
+	if (ul < ol)
+	{
+		dres = (ol - ul);	/* reduction of common prefix len */
+	}	
+	
+	*res += FLT_MIN;
+	*res += (float) (dres / ((double) (ol + 1)));
+	*res *= (FLT_MAX / (o->rel->rd_att->natts + 1));
+		
 	PG_RETURN_POINTER(result);
 }
 

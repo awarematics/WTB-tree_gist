@@ -6,8 +6,7 @@
 
 
 // wkey를 Leaf 노드 키(LKEY)로 변환
-WTB_KEY_IN_LKey *
-range_key_to_node_key(wkey *w)
+WTB_KEY_IN_LKey* range_key_to_node_key(wkey *w)
 {
 	WTB_KEY_IN_LKey *LKEY;
 	char temp[12];
@@ -27,8 +26,7 @@ range_key_to_node_key(wkey *w)
 }
 
 // wkey를 중간 노드 키(IKEY)로 변환
-WTB_KEY_IN_IKey
-node_key_to_range_key(wkey *w)
+WTB_KEY_IN_IKey* node_key_to_range_key(wkey *w)
 {
 	WTB_KEY_IN_IKey IKEY;
 	
@@ -44,8 +42,7 @@ node_key_to_range_key(wkey *w)
 	return IKEY;
 }
 
-wkey
-range_key_to_wkey(WTB_KEY_IN_IKey *ikey)
+wkey* range_key_to_wkey(WTB_KEY_IN_IKey *ikey)
 {
 	wkey *w;
 	char temp[25];
@@ -66,8 +63,7 @@ range_key_to_wkey(WTB_KEY_IN_IKey *ikey)
 }
 
 // MBR 값을 GeoHash 값으로 변환
-char *
-WTBtree_util_MBRtoGeohash(WTB_KEY_IN_IKey *IKEY)
+char* WTBtree_util_MBRtoGeohash(WTB_KEY_IN_IKey *IKEY)
 {
 	int precision = 12;		
 	char minGeohash[12], maxGeohash[12];
