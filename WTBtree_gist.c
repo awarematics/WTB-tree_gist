@@ -140,9 +140,11 @@ Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 		PG_RETURN_FLOAT8(*result);
 	}
 
-	// TODO : (sizeof(origKey) + sizeof(newKey)) - sizeof(origKey) => result
+	// char 형 키값을 삽입했을때의 비용 
 	
-	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
+	result = 0.0;
+	
+	PG_RETURN_POINTER(result);
 }
 
 
