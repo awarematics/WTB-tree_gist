@@ -1,5 +1,6 @@
 
 
+#include <string.h>
 #include "postgres.h"
 
 #include "access/gist.h"
@@ -9,6 +10,13 @@
 #include "WTBtree_util.h"
 #include "./geohash/geohash.h"
 
+
+#define WTBtree_LessStrategyNumber			1
+#define WTBtree_LessEqualStrategyNumber		2
+#define WTBtree_EqualStrategyNumber			3
+#define WTBtree_GreaterEqualStrategyNumber	4
+#define WTBtree_GreaterStrategyNumber		5
+#define WTBtree_NotEqualStrategyNumber		6
 
 Datum WTBtree_consistent(PG_FUNCTION_ARGS);
 Datum WTBtree_union(PG_FUNCTION_ARGS);
@@ -31,26 +39,131 @@ PG_FUNCTION_INFO_V1(WTBtree_union);
 PG_FUNCTION_INFO_V1(WTBtree_same);
 
 
+bool char_gt(const void *query, const char *key)
+{	
+	bool		result;
+
+	result = (strcmp(query, key) > 0);
+
+	return result;
+}
+
+bool char_ge(const void *query, const char *key)
+{	
+	bool		result;
+
+	result = (strcmp(query, key) >= 0);
+
+	return result;
+}
+
+bool char_eq(const void *query, const char *key)
+{	
+	bool		result;
+	int			len1, len2;
+
+	len1 = strlen(len1);
+	len2 = strlen(len2);
+	
+	if (len1 != len2)
+	{
+		result = false;
+	} else
+	{		
+		result = (strcmp(query, ikey->lower) == 0);
+	}
+	
+	return result;
+}
+
+bool char_lt(const void *query, const char *key)
+{	
+	bool		result;
+
+	result = (strcmp(query, key) < 0);
+
+	return result;
+}
+
+bool char_le(const void *query, const char *key)
+{	
+	bool		result;
+
+	result = (strcmp(query, key) <= 0);
+
+	return result;
+}
+
+int char_cmp(const void *query, const char *key)
+{	
+	int		result;
+
+	result = strcmp(query, key);
+
+	return result;
+}
+
 Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 {
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);	
+	void	   *query = (void *) DatumGetTextP(PG_GETARG_DATUM(1));
 	StrategyNumber strategy = (StrategyNumber) PG_GETARG_UINT16(2);
-	bool		result;
-	
+	bool		result;	
 	/* Oid		subtype = PG_GETARG_OID(3); */
 	
 	/* PostgreSQL 8.4 and later require the RECHECK flag to be set here,
 	   rather than being supplied as part of the operator class definition */
 	bool	   *recheck = (bool *) PG_GETARG_POINTER(4);
 	
+	wkey *key = (wkey *) DatumGetPointer(entry->key);
+	WTB_KEY_IN_IKey *ikey = node_key_to_range_key(key);	
 
 	/* We set recheck to false to avoid repeatedly pulling every "possibly matched" geometry
 	   out during index scans. For cases when the geometries are large, rechecking
 	   can make things twice as slow. */
 	*recheck = false;
+	
+	switch (strategy)
+	{
+		case WTBtree_LessStrategyNumber:
+			if (GIST_LEAF(entry))
+				retval = char_lt(query, ikey->lower);
+			else
+				retval = char_cmp(query, ikey->upper) <= 0;
+			break;	
+		case WTBtree_LessEqualStrategyNumber:
+			if (GIST_LEAF(entry))
+				retval = char_le(query, ikey->lower);
+			else
+				retval = char_cmp(query, ikey->upper) <= 0;
+			break;
+		case WTBtree_EqualStrategyNumber:
+			if (GIST_LEAF(entry))
+				retval = char_le(query, ikey->lower);
+			else
+				retval =
+					(char_cmp(query, ikey->lower) >= 0 &&
+					 char_cmp(query, ikey->upper) <= 0);
+			break;
+		case WTBtree_GreaterEqualStrategyNumber:
+			if (GIST_LEAF(entry))
+				retval = char_ge(query, ikey->lower);
+			else
+				retval = char_cmp(query, ikey->lower) >= 0;
+			break;		
+		case WTBtree_GreaterStrategyNumber:
+			if (GIST_LEAF(entry))
+				retval = char_gt(query, ikey->lower);
+			else
+				retval = char_cmp(query, ikey->lower) >= 0;
+			break;			
+		case WTBtree_NotEqualStrategyNumber:
+			retval = !(char_eq(query, ikey->lower) && char_eq(query, ikey->upper));
+			break;
+		default:
+			retval = FALSE;
+	}
 
-	
-	
 	PG_RETURN_BOOL(result);
 }
 
