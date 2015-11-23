@@ -28,15 +28,19 @@ WTB_KEY_IN_LKey* range_key_to_node_key(wkey *w)
 // wkey를 중간 노드 키(IKEY)로 변환
 WTB_KEY_IN_IKey* node_key_to_range_key(wkey *w)
 {
-	WTB_KEY_IN_IKey IKEY;
+	WTB_KEY_IN_IKey *IKEY;
 	
 	if (w[0]=='i') // Intermediate Node
 	{
 		for (int i=0; i<12; i++)
 		{
-			IKEY->lower[i] = w[i+1];
-			IKEY->upper[i] = w[i+13];
+			IKEY.lower[i] = w[i+1];
+			IKEY.upper[i] = w[i+13];
 		}
+	} else 
+	{
+		IKEY->lower = null;
+		IKEY->upper = null;
 	}
 	
 	return IKEY;

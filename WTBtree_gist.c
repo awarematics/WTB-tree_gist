@@ -11,9 +11,9 @@
 #include "./geohash/geohash.h"
 
 
-#define WTBtree_LessStrategyNumber			1
+#define WTBtree_LessStrategyNumber		1
 #define WTBtree_LessEqualStrategyNumber		2
-#define WTBtree_EqualStrategyNumber			3
+#define WTBtree_EqualStrategyNumber		3
 #define WTBtree_GreaterEqualStrategyNumber	4
 #define WTBtree_GreaterStrategyNumber		5
 #define WTBtree_NotEqualStrategyNumber		6
@@ -67,17 +67,17 @@ bool char_ge(const void *query, const char *key)
 bool char_eq(const void *query, const char *key)
 {	
 	bool		result;
-	int			len1, len2;
+	int		len1, len2;
 
-	len1 = strlen(len1);
-	len2 = strlen(len2);
+	len1 = strlen(query);
+	len2 = strlen(key);
 	
 	if (len1 != len2)
 	{
 		result = false;
 	} else
 	{		
-		result = (strcmp(query, ikey->lower) == 0);
+		result = (strcmp(query, key) == 0);
 	}
 	
 	return result;
@@ -134,41 +134,41 @@ Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 	{
 		case WTBtree_LessStrategyNumber:
 			if (GIST_LEAF(entry))
-				retval = char_lt(query, ikey->lower);
+				result = char_lt(query, ikey->lower);
 			else
-				retval = char_cmp(query, ikey->upper) <= 0;
+				result = char_cmp(query, ikey->upper) <= 0;
 			break;	
 		case WTBtree_LessEqualStrategyNumber:
 			if (GIST_LEAF(entry))
-				retval = char_le(query, ikey->lower);
+				result = char_le(query, ikey->lower);
 			else
-				retval = char_cmp(query, ikey->upper) <= 0;
+				result = char_cmp(query, ikey->upper) <= 0;
 			break;
 		case WTBtree_EqualStrategyNumber:
 			if (GIST_LEAF(entry))
-				retval = char_le(query, ikey->lower);
+				result = char_le(query, ikey->lower);
 			else
-				retval =
+				result =
 					(char_cmp(query, ikey->lower) >= 0 &&
 					 char_cmp(query, ikey->upper) <= 0);
 			break;
 		case WTBtree_GreaterEqualStrategyNumber:
 			if (GIST_LEAF(entry))
-				retval = char_ge(query, ikey->lower);
+				result = char_ge(query, ikey->lower);
 			else
-				retval = char_cmp(query, ikey->lower) >= 0;
+				result = char_cmp(query, ikey->lower) >= 0;
 			break;		
 		case WTBtree_GreaterStrategyNumber:
 			if (GIST_LEAF(entry))
-				retval = char_gt(query, ikey->lower);
+				result = char_gt(query, ikey->lower);
 			else
-				retval = char_cmp(query, ikey->lower) >= 0;
+				result = char_cmp(query, ikey->lower) >= 0;
 			break;			
 		case WTBtree_NotEqualStrategyNumber:
-			retval = !(char_eq(query, ikey->lower) && char_eq(query, ikey->upper));
+			result = !(char_eq(query, ikey->lower) && char_eq(query, ikey->upper));
 			break;
 		default:
-			retval = FALSE;
+			result = FALSE;
 	}
 
 	PG_RETURN_BOOL(result);
@@ -177,36 +177,36 @@ Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 void
 WTBtree_key_union(Datum *u, wkey *wkey_cur)
 {	
-	WTB_KEY_IN_IKey cur_ikey = node_key_to_range_key(wkey_cur);
-	WTB_KEY_IN_IKey new_ikey;
+	WTB_KEY_IN_IKey *cur_ikey = node_key_to_range_key(wkey_cur);
+	WTB_KEY_IN_IKey *new_ikey;
 
 	if (DatumGetPointer(*u))
 	{		
-		WTB_KEY_IN_IKey ikey = node_key_to_range_key((wkey *) DatumGetPointer(*u));
+		WTB_KEY_IN_IKey *ikey = node_key_to_range_key((wkey *) DatumGetPointer(*u));
 		bool update = false;
 
-		new_ikey.lower = ikey.lower;
-		new_ikey.upper = ikey.upper;
+		strcpy(new_ikey->lower, ikey->upper);
+		strcpy(new_ikey->upper, ikey->upper);
 
-		if (strcmp(ikey.lower, cur_ikey.lower) > 0)
+		if (strcmp(ikey->lower, cur_ikey->lower) > 0)
 		{
-			new_ikey.lower = cur_ikey.lower;
+			strcpy(new_ikey->lower, cur_ikey->lower);
 			update = true;
 		}
 
-		if (strcmp(ikey.upper, cur_ikey.upper) < 0)
+		if (strcmp(ikey->upper, cur_ikey->upper) < 0)
 		{
-			new_ikey.upper = cur_ikey.upper;
+			strcpy(new_ikey->upper, cur_ikey->upper);
 			update = true;
 		}
 
 		if (update)
-			*u =PointerGetDatum(range_key_to_wkey(new_ikey));
+			*u = PointerGetDatum(range_key_to_wkey(new_ikey));
 	}
 	else
 	{
-		new_ikey.lower = cur_ikey.lower;
-		new_ikey.upper = cur_ikey.upper;
+		strcpy(new_ikey->lower, cur_ikey->lower);
+		strcpy(new_ikey->upper, cur_ikey->upper);
 		*u = PointerGetDatum(range_key_to_wkey(new_ikey));
 	}
 }
@@ -258,7 +258,7 @@ Datum WTBtree_compress(PG_FUNCTION_ARGS)
 		PG_RETURN_POINTER(entry_out);
 	}
 	
-	leaf = (wkey *) DatumGetPointer(PG_DETOAST_DATUM(entry->key));
+	leaf = (wkey *) DatumGetPointer(PG_DETOAST_DATUM(entry_in->key));
 	LKEY = range_key_to_node_key(leaf);
 	
 	/* Prepare GISTENTRY for return. */
@@ -275,16 +275,16 @@ Datum WTBtree_decompress(PG_FUNCTION_ARGS)
 }
 
  int
-WTBtree_node_cp_len(const wkey *w)
+WTBtree_node_cp_len(wkey *w)
 {
-	WTB_KEY_IN_IKey ikey = node_key_to_range_key(w);
+	WTB_KEY_IN_IKey *ikey = node_key_to_range_key(w);
 	int		i = 0;
 	int		l = 0;
-	int		t1len = VARSIZE(ikey.lower) - VARHDRSZ;
-	int		t2len = VARSIZE(ikey.upper) - VARHDRSZ;
+	int		t1len = VARSIZE(ikey->lower) - VARHDRSZ;
+	int		t2len = VARSIZE(ikey->upper) - VARHDRSZ;
 	int		ml = Min(t1len, t2len);
-	char	   *p1 = VARDATA(ikey.lower);
-	char	   *p2 = VARDATA(ikey.upper);
+	char	   *p1 = VARDATA(ikey->lower);
+	char	   *p2 = VARDATA(ikey->upper);
 
 	if (ml == 0)
 		return 0;
@@ -339,9 +339,9 @@ Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 		dres = (ol - ul);	/* reduction of common prefix len */
 	}	
 	
-	*res += FLT_MIN;
-	*res += (float) (dres / ((double) (ol + 1)));
-	*res *= (FLT_MAX / (o->rel->rd_att->natts + 1));
+	*result += FLT_MIN;
+	*result += (float) (dres / ((double) (ol + 1)));
+//	*result *= (FLT_MAX / (o->rel->rd_att->natts + 1));
 		
 	PG_RETURN_POINTER(result);
 }
@@ -354,16 +354,7 @@ WTBtree_same(PG_FUNCTION_ARGS)
 	wkey *w2 = (wkey *)PG_GETARG_POINTER(1);
 	bool *result = (bool *) PG_GETARG_POINTER(2);
 
-	if (w1 && w2)
-	{
-		if (strcmp(w1, w2) == 0)
-			result = true;
-		else 
-			result = false;	
-	} else 
-	{
-		result = false;
-	}
+	
 	
 	PG_RETURN_POINTER(result);
 }
@@ -377,8 +368,9 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	GIST_SPLITVEC *v = (GIST_SPLITVEC *) PG_GETARG_POINTER(1);
 	
 	OffsetNumber i, maxoff = entryvec->n - 1;
-	wkey *cur;
-	int nbytes;
+	Vsrt *arr;
+	wkey *cur, *sv;
+	int svcntr = 0, nbytes;
 					  
 	arr = (Vsrt *) palloc((maxoff + 1) * sizeof(Vsrt));
 	nbytes = (maxoff + 2) * sizeof(OffsetNumber);	
@@ -389,19 +381,18 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	v->spl_nleft = 0;
 	v->spl_nright = 0;
 	
-	//sv = palloc(sizeof(bytea *) * (maxoff + 1));
+	sv = palloc(sizeof(wkey) * (maxoff + 1));
 
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
-		WTB_KEY_IN_IKey ikey;
+		WTB_KEY_IN_IKey *ikey;
 
 		cur = (wkey *) DatumGetPointer(entryvec->vector[i].key);
 		ikey = node_key_to_range_key(cur);
-		if (ikey.lower == ikey.upper)		/* leaf */
-		{
-			sv[svcntr] = gbt_var_leaf2node((wkey *) cur, tinfo);
-			arr[i].t = sv[svcntr];
-			if (sv[svcntr] != (wkey *) cur)
+		if (ikey->lower == ikey->upper)		/* leaf */
+		{			
+			arr[i].t = sv;
+			if (sv != (wkey *) cur)
 				svcntr++;
 		}
 		else
@@ -409,14 +400,7 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 		arr[i].i = i;
 	}
 	
-	/* sort */
-	varg.tinfo = tinfo;
-	varg.collation = collation;
-	qsort_arg((void *) &arr[FirstOffsetNumber],
-			  maxoff - FirstOffsetNumber + 1,
-			  sizeof(Vsrt),
-			  gbt_vsrt_cmp,
-			  (void *) &varg);
+	
 			  
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
