@@ -34,8 +34,8 @@ WTB_KEY_IN_IKey* node_key_to_range_key(wkey *w)
 	{
 		for (int i=0; i<12; i++)
 		{
-			IKEY->lkey[i] = w[i+1];
-			IKEY->ukey[i] = w[i+13];
+			IKEY->lower[i] = w[i+1];
+			IKEY->upper[i] = w[i+13];
 		}
 	}
 	
@@ -51,8 +51,8 @@ wkey* range_key_to_wkey(WTB_KEY_IN_IKey *ikey)
 	
 	for (int i=0; i<12; i++)
 		{
-			temp[i+1] = ikey->lkey[i];
-			temp[i+13] = ikey->ukey[i];
+			temp[i+1] = ikey->lower[i];
+			temp[i+13] = ikey->upper[i];
 		}
 		
 	w = (wkey *)palloc(sizeof(wkey));

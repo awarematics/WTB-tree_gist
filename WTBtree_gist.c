@@ -18,6 +18,13 @@
 #define WTBtree_GreaterStrategyNumber		5
 #define WTBtree_NotEqualStrategyNumber		6
 
+
+typedef struct
+{
+	int	i;
+	wkey *t;
+} Vsrt;
+
 Datum WTBtree_consistent(PG_FUNCTION_ARGS);
 Datum WTBtree_union(PG_FUNCTION_ARGS);
 Datum WTBtree_compress(PG_FUNCTION_ARGS);
@@ -343,12 +350,22 @@ Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 Datum
 WTBtree_same(PG_FUNCTION_ARGS)
 {
-	
-	bool	   *result = (bool *) PG_GETARG_POINTER(2);
+	wkey *w1 = (wkey *)PG_GETARG_POINTER(0);
+	wkey *w2 = (wkey *)PG_GETARG_POINTER(1);
+	bool *result = (bool *) PG_GETARG_POINTER(2);
 
-	//TODO 비교 함수
+	if (w1 && w2)
+	{
+		if (strcmp(w1, w2) == 0)
+			result = true;
+		else 
+			result = false;	
+	} else 
+	{
+		result = false;
+	}
 	
-	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
+	PG_RETURN_POINTER(result);
 }
 
 
@@ -359,7 +376,63 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	GistEntryVector *entryvec = (GistEntryVector *) PG_GETARG_POINTER(0);
 	GIST_SPLITVEC *v = (GIST_SPLITVEC *) PG_GETARG_POINTER(1);
 	
-	
+	OffsetNumber i, maxoff = entryvec->n - 1;
+	wkey *cur;
+	int nbytes;
 					  
-	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
+	arr = (Vsrt *) palloc((maxoff + 1) * sizeof(Vsrt));
+	nbytes = (maxoff + 2) * sizeof(OffsetNumber);	
+	v->spl_left = (OffsetNumber *) palloc(nbytes);
+	v->spl_right = (OffsetNumber *) palloc(nbytes);
+	v->spl_ldatum = PointerGetDatum(0);
+	v->spl_rdatum = PointerGetDatum(0);
+	v->spl_nleft = 0;
+	v->spl_nright = 0;
+	
+	//sv = palloc(sizeof(bytea *) * (maxoff + 1));
+
+	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
+	{
+		WTB_KEY_IN_IKey ikey;
+
+		cur = (wkey *) DatumGetPointer(entryvec->vector[i].key);
+		ikey = node_key_to_range_key(cur);
+		if (ikey.lower == ikey.upper)		/* leaf */
+		{
+			sv[svcntr] = gbt_var_leaf2node((wkey *) cur, tinfo);
+			arr[i].t = sv[svcntr];
+			if (sv[svcntr] != (wkey *) cur)
+				svcntr++;
+		}
+		else
+			arr[i].t = (wkey *) cur;
+		arr[i].i = i;
+	}
+	
+	/* sort */
+	varg.tinfo = tinfo;
+	varg.collation = collation;
+	qsort_arg((void *) &arr[FirstOffsetNumber],
+			  maxoff - FirstOffsetNumber + 1,
+			  sizeof(Vsrt),
+			  gbt_vsrt_cmp,
+			  (void *) &varg);
+			  
+	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
+	{
+		if (i <= (maxoff - FirstOffsetNumber + 1) / 2)
+		{
+			WTBtree_key_union(&v->spl_ldatum, arr[i].t);
+			v->spl_left[v->spl_nleft] = arr[i].i;
+			v->spl_nleft++;
+		}
+		else
+		{
+			WTBtree_key_union(&v->spl_rdatum, arr[i].t);
+			v->spl_right[v->spl_nright] = arr[i].i;
+			v->spl_nright++;
+		}
+	}
+	
+	PG_RETURN_POINTER(v);
 }

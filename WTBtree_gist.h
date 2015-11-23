@@ -16,6 +16,6 @@ typedef struct
 // 범위 값으로 저장
 typedef struct
 {
-	char lkey[12];	// Lower Key
-	char ukey[12];	// Upper Key
+	char lower[12];	// Lower Key
+	char upper[12];	// Upper Key
 } WTB_KEY_IN_IKey;

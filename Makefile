@@ -11,9 +11,9 @@
 # **********************************************************************
 
 POSTGIS_PGSQL_VERSION=93
-WTB-tree=salary_gist
+WTBtree=WTBtree
 ROOTDIR=/usr/local/posttrajectory
-WTBTree_DIR=$(ROOTDIR)/test/$(WTB-tree)
+WTBTree_DIR=$(ROOTDIR)/test/$(WTBtree)
 
 #GeoHash Library
 GEOHASHDIR=./geohash
@@ -32,15 +32,15 @@ trjlibdir = $(WTBTree_DIR)/lib
 CC=gcc
 
 # SAIARY Files
-WTB-tree_O = WTB-tree_gist.o
-WTB-tree_SO = WTB-tree_gist.so
-WTB-tree_SQL = WTB-tree_gist.sql
-WTB-tree_SQL_uninstall =  WTB-tree_gist_uninstall.sql
+WTBtree_O = WTBtree_gist.o
+WTBtree_SO = WTBtree_gist.so
+WTBtree_SQL = WTBtree_gist.sql
+WTBtree_SQL_uninstall =  WTB-tree_gist_uninstall.sql
 
 
 all: geohashLib
-	$(CC) -fpic -c WTB-tree_gist.c -I$(includedir_server) -I$(GEOHASHDIR)
-	$(CC) -shared -o $(WTB-tree_SO) $(WTB-tree_O)
+	$(CC) -fpic -c WTBtree_gist.c -I$(includedir_server) -I$(GEOHASHDIR)
+	$(CC) -shared -o $(WTBtree_SO) $(WTBtree_O)
 
 geohashLib: 
 	$(CC) -c $(GEOHASHDIR)/geohash.c -o $(GEOHASHDIR)/geohash.o 
@@ -48,21 +48,21 @@ geohashLib:
 	rm $(GEOHASHDIR)/geohash.o
 
 clean:
-	rm -f $(WTB-tree_O)
-	rm -f $(WTB-tree_SO)
+	rm -f $(WTBtree_O)
+	rm -f $(WTBtree_SO)
 	rm -f $(GEOHASHDIR)/libgeohash.a
 
 install: installdirs 
-	cp $(WTB-tree_SO) $(trjlibdir)
-	cp $(WTB-tree_SQL) $(WTBTree_DIR)	
-	cp $(WTB-tree_SQL_uninstall) $(WTBTree_DIR)
-	$(PSQL) -U postgres postgres < $(WTBTree_DIR)/$(WTB-tree_SQL)
+	cp $(WTBtree_SO) $(trjlibdir)
+	cp $(WTBtree_SQL) $(WTBTree_DIR)	
+	cp $(WTBtree_SQL_uninstall) $(WTBTree_DIR)
+	$(PSQL) -U postgres postgres < $(WTBTree_DIR)/$(WTBtree_SQL)
 
 installdirs:
 	mkdir -p $(WTBTree_DIR)
 	mkdir $(trjlibdir)
 
 uninstall:   
-	$(PSQL) -U postgres postgres < $(WTBTree_DIR)/$(WTB-tree_SQL_uninstall)
+	$(PSQL) -U postgres postgres < $(WTBTree_DIR)/$(WTBtree_SQL_uninstall)
 	rm -rf $(WTBTree_DIR)
 	
