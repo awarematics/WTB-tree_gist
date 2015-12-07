@@ -11,7 +11,7 @@
 # **********************************************************************
 
 POSTGIS_PGSQL_VERSION=93
-WTBtree=WTBtree
+WTBtree=WTBtree_gist
 ROOTDIR=/usr/local/posttrajectory
 WTBTree_DIR=$(ROOTDIR)/test/$(WTBtree)
 
@@ -35,7 +35,7 @@ CC=gcc
 WTBtree_O = WTBtree_gist.o
 WTBtree_SO = WTBtree_gist.so
 WTBtree_SQL = WTBtree_gist.sql
-WTBtree_SQL_uninstall =  WTB-tree_gist_uninstall.sql
+WTBtree_SQL_uninstall =  WTBtree_gist_uninstall.sql
 
 
 all: geohashLib

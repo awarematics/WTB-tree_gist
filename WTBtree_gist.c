@@ -18,12 +18,7 @@
 #define WTBtree_GreaterStrategyNumber		5
 #define WTBtree_NotEqualStrategyNumber		6
 
-
-typedef struct
-{
-	int	i;
-	wkey *t;
-} Vsrt;
+PG_MODULE_MAGIC;
 
 Datum WTBtree_consistent(PG_FUNCTION_ARGS);
 Datum WTBtree_union(PG_FUNCTION_ARGS);
@@ -223,7 +218,7 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	
 	wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[0].key);
 	
-	POSTGIS_DEBUGF(4, "numranges is %d", numranges);
+	//POSTGIS_DEBUGF(4, "numranges is %d", numranges);
 	
 	for ( i = 1; i < numranges; i++ )
 	{
@@ -390,7 +385,7 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	unionL = NULL;
 	unionR = NULL;
 			  
-	POSTGIS_DEBUGF(4, "entryvec->n is %d", entryvec->n - 1);
+	//POSTGIS_DEBUGF(4, "entryvec->n is %d", entryvec->n - 1);
 	
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{

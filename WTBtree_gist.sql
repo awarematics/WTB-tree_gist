@@ -1,5 +1,9 @@
 \set WTBtree_LIB '/usr/local/posttrajectory/test/WTBtree_gist/lib/WTBtree_gist'
 
+CREATE TYPE wkey as (
+	wkey char[25]
+);
+
 CREATE OR REPLACE FUNCTION WTBtree_consistent(internal,int4,int,oid,internal)
 RETURNS bool
 AS :'WTBtree_LIB','WTBtree_consistent'
@@ -35,8 +39,60 @@ RETURNS internal
 AS :'WTBtree_LIB','WTBtree_same'
 LANGUAGE C IMMUTABLE STRICT;
 
+----------------------------------------------------------------------------------
+-- OPERATOR
+----------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION wtb_lt(query wkey, wk wkey)
+RETURNS bool
+AS :'WTBtree_LIB', 'char_lt'
+LANGUAGE 'c' IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION wtb_le(query wkey, wk wkey)
+RETURNS bool
+AS :'WTBtree_LIB', 'char_le'
+LANGUAGE 'c' IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION wtb_gt(query wkey, wk wkey)
+RETURNS bool
+AS :'WTBtree_LIB', 'char_gt'
+LANGUAGE 'c' IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION wtb_ge(query wkey, wk wkey)
+RETURNS bool
+AS :'WTBtree_LIB', 'char_ge'
+LANGUAGE 'c' IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION wtb_eq(query wkey, wk wkey)
+RETURNS bool
+AS :'WTBtree_LIB', 'char_eq'
+LANGUAGE 'c' IMMUTABLE STRICT;
+
+CREATE OPERATOR < (
+	LEFTARG = wkey, RIGHTARG = wkey, PROCEDURE = wtb_lt,
+	COMMUTATOR = '<'
+);
+
+CREATE OPERATOR <= (
+	LEFTARG = wkey, RIGHTARG = wkey, PROCEDURE = wtb_le,
+	COMMUTATOR = '<='
+);
+
+CREATE OPERATOR = (
+	LEFTARG = wkey, RIGHTARG = wkey, PROCEDURE = wtb_eq,
+	COMMUTATOR = '='
+);
+
+CREATE OPERATOR >= (
+	LEFTARG = wkey, RIGHTARG = wkey, PROCEDURE = wtb_ge,
+	COMMUTATOR = '>='
+);
+CREATE OPERATOR > (
+	LEFTARG = wkey, RIGHTARG = wkey, PROCEDURE = wtb_gt,
+	COMMUTATOR = '>'
+);
+
 CREATE OPERATOR CLASS WTBtree_gist_ops
-DEFAULT FOR TYPE trajectory USING gist
+DEFAULT FOR TYPE wkey USING gist
 AS
 	OPERATOR	1	<  ,
 	OPERATOR	2	<= ,

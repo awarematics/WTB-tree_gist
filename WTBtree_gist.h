@@ -1,6 +1,6 @@
 
 
-
+PG_MODULE_MAGIC;
 
 // 12개의 geohash string 키값
 typedef char wkey[25];
