@@ -223,6 +223,8 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	
 	wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[0].key);
 	
+	POSTGIS_DEBUGF(4, "numranges is %d", numranges);
+	
 	for ( i = 1; i < numranges; i++ )
 	{
 		wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[i].key);
@@ -388,6 +390,8 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	unionL = NULL;
 	unionR = NULL;
 			  
+	POSTGIS_DEBUGF(4, "entryvec->n is %d", entryvec->n - 1);
+	
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
 		cur	 = DatumGetPointer(entryvec->vector[OffsetNumberNext(FirstOffsetNumber)].key);
