@@ -368,55 +368,48 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	GIST_SPLITVEC *v = (GIST_SPLITVEC *) PG_GETARG_POINTER(1);
 	
 	OffsetNumber i, maxoff = entryvec->n - 1;
-	Vsrt *arr;
-	wkey *cur, *sv;
-	int svcntr = 0, nbytes;
-					  
-	arr = (Vsrt *) palloc((maxoff + 1) * sizeof(Vsrt));
-	nbytes = (maxoff + 2) * sizeof(OffsetNumber);	
+	OffsetNumber *left, *right;
+	
+	int nbytes;
+		
+	wkey *cur, *unionL, *unionR;
+	
+	nbytes = (maxoff + 1) * sizeof(OffsetNumber);	
+	
 	v->spl_left = (OffsetNumber *) palloc(nbytes);
-	v->spl_right = (OffsetNumber *) palloc(nbytes);
+	left = v->spl_left;
+	v->spl_right = (OffsetNumber *) palloc(nbytes);	
+	right = v->spl_right;
 	v->spl_ldatum = PointerGetDatum(0);
 	v->spl_rdatum = PointerGetDatum(0);
 	v->spl_nleft = 0;
 	v->spl_nright = 0;
 	
-	sv = palloc(sizeof(wkey) * (maxoff + 1));
-
-	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
-	{
-		WTB_KEY_IN_IKey *ikey;
-
-		cur = (wkey *) DatumGetPointer(entryvec->vector[i].key);
-		ikey = node_key_to_range_key(cur);
-		if (ikey->lower == ikey->upper)		/* leaf */
-		{			
-			arr[i].t = sv;
-			if (sv != (wkey *) cur)
-				svcntr++;
-		}
-		else
-			arr[i].t = (wkey *) cur;
-		arr[i].i = i;
-	}
-	
-	
+	unionL = NULL;
+	unionR = NULL;
 			  
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
+		cur	 = DatumGetPointer(entryvec->vector[OffsetNumberNext(FirstOffsetNumber)].key);
+		
 		if (i <= (maxoff - FirstOffsetNumber + 1) / 2)
 		{
-			WTBtree_key_union(&v->spl_ldatum, arr[i].t);
-			v->spl_left[v->spl_nleft] = arr[i].i;
+			// Left node
+			WTBtree_key_union(&v->spl_ldatum, cur);
+			v->spl_left[v->spl_nleft] = i;
 			v->spl_nleft++;
 		}
 		else
 		{
-			WTBtree_key_union(&v->spl_rdatum, arr[i].t);
-			v->spl_right[v->spl_nright] = arr[i].i;
+			// Right node
+			WTBtree_key_union(&v->spl_rdatum, cur);
+			v->spl_right[v->spl_nright] = i;
 			v->spl_nright++;
 		}
 	}
+	
+	//v->spl_ldatum = PointerGetDatum(unionL);
+	//v->spl_rdatum = PointerGetDatum(unionR);
 	
 	PG_RETURN_POINTER(v);
 }
