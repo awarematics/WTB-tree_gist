@@ -6,9 +6,8 @@
 #include "access/gist.h"
 #include "access/skey.h"
 
+#include "lwgeom_log.h"   
 #include "WTBtree_gist.h"
-#include "WTBtree_util.h"
-#include "./geohash/geohash.h"
 
 
 #define WTBtree_LessStrategyNumber		1
@@ -40,6 +39,71 @@ PG_FUNCTION_INFO_V1(WTBtree_picksplit);
 PG_FUNCTION_INFO_V1(WTBtree_union);
 PG_FUNCTION_INFO_V1(WTBtree_same);
 
+
+// wkeyë¥?Leaf ?¸ë“œ ??LKEY)ë¡œ ë³€?˜
+WTB_KEY_IN_LKey* range_key_to_node_key(wkey *w)
+{
+	WTB_KEY_IN_LKey *LKEY;
+	char temp[12];
+	int i;
+
+	for (i=0; i<sizeof(temp); i++)
+	{
+		temp[i] = *w[i+1];
+	}
+	
+	if (*w[0]=='l') // Leaf Node
+	{
+		LKEY = (WTB_KEY_IN_LKey *)palloc(sizeof(WTB_KEY_IN_LKey));
+		memcpy((char*)LKEY, (char*)temp, sizeof(WTB_KEY_IN_LKey));		
+	}
+	
+	return LKEY;
+}
+
+// wkeyë¥?ì¤‘ê°„ ?¸ë“œ ??IKEY)ë¡œ ë³€?˜
+WTB_KEY_IN_IKey* node_key_to_range_key(wkey *w)
+{
+	WTB_KEY_IN_IKey *IKEY;
+	
+	if (*w[0]=='i') // Intermediate Node
+	{
+		int i;
+
+		for (i=0; i<12; i++)
+		{
+			IKEY->lower[i] = *w[i+1];
+			IKEY->upper[i] = *w[i+13];
+		}
+	} else 
+	{
+		//IKEY->lower;
+		//IKEY->upper;
+	}
+	
+	return IKEY;
+}
+
+wkey* range_key_to_wkey(WTB_KEY_IN_IKey *ikey)
+{
+	wkey *w;
+	char temp[25];
+	
+	temp[0] = 'i';
+	int i;
+
+	for (i=0; i<12; i++)
+		{
+			temp[i+1] = ikey->lower[i];
+			temp[i+13] = ikey->upper[i];
+		}
+		
+	w = (wkey *)palloc(sizeof(wkey));
+	memcpy((char*)w, (char*)temp, sizeof(wkey));		
+	
+	
+	return w;
+}
 
 bool char_gt(const void *query, const char *key)
 {	
@@ -106,7 +170,9 @@ int char_cmp(const void *query, const char *key)
 }
 
 Datum WTBtree_consistent(PG_FUNCTION_ARGS)
-{
+{	
+	printf("------------------consistent\n");
+
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);	
 	void	   *query = (void *) DatumGetTextP(PG_GETARG_DATUM(1));
 	StrategyNumber strategy = (StrategyNumber) PG_GETARG_UINT16(2);
@@ -116,7 +182,7 @@ Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 	/* PostgreSQL 8.4 and later require the RECHECK flag to be set here,
 	   rather than being supplied as part of the operator class definition */
 	bool	   *recheck = (bool *) PG_GETARG_POINTER(4);
-	
+
 	wkey *key = (wkey *) DatumGetPointer(entry->key);
 	WTB_KEY_IN_IKey *ikey = node_key_to_range_key(key);	
 
@@ -172,6 +238,8 @@ Datum WTBtree_consistent(PG_FUNCTION_ARGS)
 void
 WTBtree_key_union(Datum *u, wkey *wkey_cur)
 {	
+	printf("------------------key_union\n");
+
 	WTB_KEY_IN_IKey *cur_ikey = node_key_to_range_key(wkey_cur);
 	WTB_KEY_IN_IKey *new_ikey;
 
@@ -208,6 +276,8 @@ WTBtree_key_union(Datum *u, wkey *wkey_cur)
 
 Datum WTBtree_union(PG_FUNCTION_ARGS)
 {
+	printf("------------------union\n");
+
 	GistEntryVector	*entryvec = (GistEntryVector *) PG_GETARG_POINTER(0);
 	int *sizep = (int *) PG_GETARG_POINTER(1); /* Size of the return value */
 	int	numranges, i;
@@ -217,7 +287,7 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 	numranges = entryvec->n;
 	
 	wkey_cur = (wkey *) DatumGetPointer(entryvec->vector[0].key);
-	
+
 	//POSTGIS_DEBUGF(4, "numranges is %d", numranges);
 	
 	for ( i = 1; i < numranges; i++ )
@@ -234,12 +304,14 @@ Datum WTBtree_union(PG_FUNCTION_ARGS)
 
 Datum WTBtree_compress(PG_FUNCTION_ARGS)
 {
+	printf("------------------compress\n");
+
 	GISTENTRY *entry_in = (GISTENTRY *) PG_GETARG_POINTER(0);
 	GISTENTRY *entry_out = NULL;
 	wkey *leaf;
 	WTB_KEY_IN_LKey *LKEY;
 	
-	// Leaf Å°°¡ ¾Æ´Ò ¶§,
+	// Leaf
 	if ( ! entry_in->leafkey )
 	{		
 		PG_RETURN_POINTER(entry_in);
@@ -254,8 +326,25 @@ Datum WTBtree_compress(PG_FUNCTION_ARGS)
 		
 		PG_RETURN_POINTER(entry_out);
 	}
+	printf("entry_in->key is %s\n", entry_in->key);
+	printf("entry_in->key is %x\n", entry_in->key);
+	printf("entry_in->key is %o\n", entry_in->key);
+	printf("entry_in->key is %d\n", entry_in->key);
+	printf("entry_in->key is %c\n", entry_in->key);
+	printf("entry_in->key is %p\n", entry_in->key);
+	printf("DatumGetPointer(entry_in->key) is %p\n", DatumGetPointer(entry_in->key));
+	
 	
 	leaf = (wkey *) DatumGetPointer(PG_DETOAST_DATUM(entry_in->key));
+	
+	/*  
+	entry_in->key ÀÇ °ª¿¡ Á¤È®È÷ ¹«½¼ °ªÀÌ µé¾îÀÖ´ÂÁö¸¦ ¸ð¸£°Ú½À´Ï´Ù.
+	Á¦°¡ ¾Ë±â·Î´Â ÀÌ key °ªÀÌ ÀÎµ¦½ÌµÇ´Â °ªÀ¸·Î ¾Ë°í ÀÖ´Âµ¥ ÀÌ °ªÀ»
+	¾î¶»°Ô ÃßÃâÇØ¾ß µÉÁö¸¦ ¸ð¸£°Ú½À´Ï´Ù.
+	ÀÌ ¹Ø¿¡ range_key_to_node_key(leaf); ÇÔ¼ö¿¡¼­ ÀÌ Å°°ªÀ» ºÒ·¯¿Í¼­ 
+	Ã³¸®ÇØ¾ßµÇ´Âµ¥ ÀÌ Å°°ªÀ» Á¦´ë·Î ¸ø °¡Á®¿À´Ï µ¥ÀÌÅÍ¸¦ ³ëµå¿¡ »ðÀÔÀ»
+	¸øÇÏ°í ÀÖ´Â°ÅÁÒ.
+	*/
 	LKEY = range_key_to_node_key(leaf);
 	
 	/* Prepare GISTENTRY for return. */
@@ -267,7 +356,7 @@ Datum WTBtree_compress(PG_FUNCTION_ARGS)
 
 Datum WTBtree_decompress(PG_FUNCTION_ARGS)
 {
-	// decompress ºÒÇÊ¿ä
+	// decompress ë¶ˆ?„?”
 	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
 }
 
@@ -307,6 +396,8 @@ WTBtree_node_cp_len(wkey *w)
 */
 Datum WTBtree_penalty(PG_FUNCTION_ARGS)
 {
+	printf("------------------penalty\n");
+
 	GISTENTRY  *o = (GISTENTRY *) PG_GETARG_POINTER(0);
 	GISTENTRY  *n = (GISTENTRY *) PG_GETARG_POINTER(1);
 	float	   *result = (float *) PG_GETARG_POINTER(2);
@@ -360,7 +451,8 @@ WTBtree_same(PG_FUNCTION_ARGS)
 Datum
 WTBtree_picksplit(PG_FUNCTION_ARGS)
 {
-	
+	printf("------------------picksplit\n");
+
 	GistEntryVector *entryvec = (GistEntryVector *) PG_GETARG_POINTER(0);
 	GIST_SPLITVEC *v = (GIST_SPLITVEC *) PG_GETARG_POINTER(1);
 	
@@ -370,7 +462,7 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	int nbytes;
 		
 	wkey *cur, *unionL, *unionR;
-	
+
 	nbytes = (maxoff + 1) * sizeof(OffsetNumber);	
 	
 	v->spl_left = (OffsetNumber *) palloc(nbytes);
@@ -389,7 +481,7 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
-		cur	 = DatumGetPointer(entryvec->vector[OffsetNumberNext(FirstOffsetNumber)].key);
+		cur	 = (wkey *) DatumGetPointer(entryvec->vector[i].key);
 		
 		if (i <= (maxoff - FirstOffsetNumber + 1) / 2)
 		{
@@ -412,3 +504,4 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 	
 	PG_RETURN_POINTER(v);
 }
+
