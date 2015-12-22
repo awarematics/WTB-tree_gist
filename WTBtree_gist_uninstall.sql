@@ -1,27 +1,27 @@
 
 DROP OPERATOR CLASS WTBtree_gist_ops using gist;
 
-DROP OPERATOR < (wkey, wkey);
+DROP OPERATOR < (char(10), char(10));
 
-DROP OPERATOR <= (wkey, wkey);
+DROP OPERATOR <= (char(10), char(10));
 
-DROP OPERATOR = (wkey, wkey);
+DROP OPERATOR = (char(10), char(10));
 
-DROP OPERATOR >= (wkey, wkey);
+DROP OPERATOR >= (char(10), char(10));
 
-DROP OPERATOR > (wkey, wkey);
+DROP OPERATOR > (char(10), char(10));
 
-DROP FUNCTION wtb_lt(query wkey, wk wkey);
+DROP FUNCTION wtb_lt(query char(10), wk char(10));
 
-DROP FUNCTION wtb_le(query wkey, wk wkey);
+DROP FUNCTION wtb_le(query char(10), wk char(10));
 
-DROP FUNCTION wtb_gt(query wkey, wk wkey);
+DROP FUNCTION wtb_gt(query char(10), wk char(10));
 
-DROP FUNCTION wtb_ge(query wkey, wk wkey);
+DROP FUNCTION wtb_ge(query char(10), wk char(10));
 
-DROP FUNCTION wtb_eq(query wkey, wk wkey);
+DROP FUNCTION wtb_eq(query char(10), wk char(10));
 
-DROP TYPE wkey;
+DROP TABLE wtraj;
 
 DROP FUNCTION WTBtree_compress(internal);
 
