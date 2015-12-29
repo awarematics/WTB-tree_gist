@@ -39,7 +39,7 @@ PG_FUNCTION_INFO_V1(WTBtree_union);
 PG_FUNCTION_INFO_V1(WTBtree_same);
 
 
-// wkey를 Leaf 노드 키(LKEY)로 변환
+// wkey�?Leaf ?�드 ??LKEY)로 변?�
 WTB_KEY_IN_LKey* range_key_to_node_key(wkey *w)
 {
 	WTB_KEY_IN_LKey *LKEY;
@@ -66,7 +66,7 @@ WTB_KEY_IN_LKey* range_key_to_node_key(wkey *w)
 	return LKEY;
 }
 
-// wkey를 중간 노드 키(IKEY)로 변환
+// wkey�?중간 ?�드 ??IKEY)로 변?�
 WTB_KEY_IN_IKey* node_key_to_range_key(wkey *w)
 {
 	WTB_KEY_IN_IKey *IKEY;
@@ -317,41 +317,37 @@ Datum WTBtree_compress(PG_FUNCTION_ARGS)
 	GISTENTRY *entry_out = NULL;
 	wkey *leaf;
 	WTB_KEY_IN_LKey *LKEY;
-printf("entry_in->key is %s\n", entry_in->key);
-printf("------------------com 1\n");
-	// Leaf 키가 아닐 때,
+
+	// Leaf ?��? ?�?� ?�,
 	if ( ! entry_in->leafkey )
-	{		printf("------------------com 2\n");
+
 		PG_RETURN_POINTER(entry_in);
 	}
-	printf("------------------com 3\n");
+	
 	entry_out = palloc(sizeof(GISTENTRY));
 	
 	if ( DatumGetPointer(entry_in->key) == NULL )
 	{	
-printf("------------------com 4\n");
+
 		gistentryinit(*entry_out, (Datum) 0, entry_in->rel,
 		              entry_in->page, entry_in->offset, FALSE);
 		
 		PG_RETURN_POINTER(entry_out);
 	}
-printf("entry_in->key is %s\n", entry_in->key+1);
-printf("------------------1\n");
+
 	leaf = (wkey *) DatumGetPointer(entry_in->key);
-	printf("------------------2\n");
-	printf("leaf is %s\n", *leaf+1);
 	LKEY = range_key_to_node_key(leaf);
-	printf("------------------3\n");
+
 	/* Prepare GISTENTRY for return. */
 	gistentryinit(*entry_out, PointerGetDatum(LKEY),
 	              entry_in->rel, entry_in->page, entry_in->offset, FALSE);
-		printf("------------------4\n");
+		
 	PG_RETURN_POINTER(entry_out);
 }
 
 Datum WTBtree_decompress(PG_FUNCTION_ARGS)
 {
-	// decompress 불필요
+	// decompress 불?�?�
 	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
 }
 
@@ -474,17 +470,17 @@ WTBtree_picksplit(PG_FUNCTION_ARGS)
 			  
 	printf("entryvec->n is %d\n", entryvec->n - 1);
 	printf("maxoff is %d\n", maxoff);
-printf("------------------test 1\n");
+
 	cur	 = (wkey *) DatumGetPointer(entryvec->vector[1].key);
-printf("------------------test 2\n");
+
 	printf("cur is %s\n", entryvec->vector[1].key+1);
-printf("------------------test 3\n");
+
 	for (i = FirstOffsetNumber; i <= maxoff; i = OffsetNumberNext(i))
 	{
-printf("------------------test 4\n");
+
 		cur	 = (wkey *) DatumGetPointer(entryvec->vector[i].key);
-printf("------------------test 5\n");
-		printf("-----------------picksplit is %s\n", cur);		
+
+
 		if (i <= (maxoff - FirstOffsetNumber + 1) / 2)
 		{
 

@@ -24,20 +24,31 @@ WTB_KEY_IN_LKey* range_key_to_node_key(wkey *w)
 WTB_KEY_IN_IKey* node_key_to_range_key(wkey *w)
 {
 	WTB_KEY_IN_IKey *IKEY;	
-
-	if (*w[0]=='i') // Intermediate Node
+	char temp[25];
+	char lKey[12], rKey[12];
+	
+	strcpy(temp, w);
+	
+	if (temp[0]=='i') // Intermediate Node
 	{
 		int i;
-		
+				
 		for (i=0; i<12; i++)
 		{
-			IKEY->lower[i] = *w[i+1];
-			IKEY->upper[i] = *w[i+13];
+			lKey[i] = temp[i+1];
+			rKey[i] = temp[i+13];
 		}
+		
+		strcpy(IKEY->lower, lKey);
+		strcpy(IKEY->upper, rKey);
 	} else 
 	{
-		//IKEY->lower;
-		//IKEY->upper;
+		for (i=0; i<12; i++)
+		{
+			lKey[i] = temp[i+1];		
+		}
+		strcpy(IKEY->lower, lKey);
+		strcpy(IKEY->upper, lKey);
 	}
 	return IKEY;
 }
@@ -72,8 +83,8 @@ char* WTBtree_util_MBRtoGeohash(WTB_KEY_IN_IKey *IKEY)
 	
 	do 
 	{
-		//minGeohash = (char *) geohash_encode(xmin, ymin, precision);
-		//maxGeohash = (char *) geohash_encode(xmax, ymax, precision);
+		minGeohash = (char *) geohash_encode(xmin, ymin, precision);
+		maxGeohash = (char *) geohash_encode(xmax, ymax, precision);
 	
 		if (minGeohash = maxGeohash) 
 		{
@@ -84,7 +95,7 @@ char* WTBtree_util_MBRtoGeohash(WTB_KEY_IN_IKey *IKEY)
 		}
 		
 		precision--;
-	} while (cmp);
+	} while (!cmp);
 		
 	return minGeohash;
 }
